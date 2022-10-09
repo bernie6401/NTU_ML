@@ -8,11 +8,11 @@ For instance, the CO image, NO image, NO2 image, and NOx image are much more cor
 <img src="./train_data_img/NO2.png" alt="NO2.png" style="zoom:50%;" /><img src="./train_data_img/NOx.png" alt="NOx.png" style="zoom:50%;" />
 <img src="./train_data_img/PM2.5.png" alt="PM2.5.png" style="zoom:50%;" />
 
-* I also choose PM10, WS_HR, RAINFALL, RH,  WIND_SPEED, and PM2.5 which you can see [here](/train_data_img/)
+* I also choose PM10, WS_HR, RAINFALL, RH,  WIND_SPEED, and PM2.5 which you can see [here](/HW1/Programming/train_data_img/)
 
 
 ## Hyperparameter and Preprocessing
-* All my testing config can be found [here](/Training Result.xlsx)
+* All my testing config can be found [here](/HW1/Programming/Training Result.xlsx)
 * I used a filter to choose valid data and set a threshold by observing the visualized figure of all features.
 
 ## My takeaway
