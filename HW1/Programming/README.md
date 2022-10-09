@@ -12,7 +12,7 @@ For instance, the CO image, NO image, NO2 image, and NOx image are much more cor
 
 
 ## Hyperparameter and Preprocessing
-* All my testing config can be found [here](/HW1/Programming/Training Result.xlsx)
+* All my testing config can be found [here](/HW1/Programming/Training\ Result.xlsx)
 * I used a filter to choose valid data and set a threshold by observing the visualized figure of all features.
 
 ## My takeaway
