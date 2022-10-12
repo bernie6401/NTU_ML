@@ -2,6 +2,8 @@ from statistics import mean
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import pickle
+import csv
 
 '''
 Load data
@@ -10,11 +12,7 @@ train_data = pd.read_csv("./dataset/train.csv")
 train_data = train_data.values
 train_data = np.transpose(np.array(np.float64(train_data)))
 
-test_data = pd.read_csv('./dataset/test.csv')
-test_data = test_data.values
-test_data = np.transpose(np.array(np.float64(test_data)))
 
-concate_data = np.concatenate((train_data, test_data), axis=1)
 
 
 '''
@@ -57,63 +55,69 @@ def visul_data(data, path, norm_type=0):
 '''
 Normalize training data
 '''
-def norm_data(train_data, norm_case, test_data):
+def norm_data(data, norm_case, mean_arr=0, std_arr=0):
     dic_data_round = {
         0 : 1, 1 : 2, 2 : 1, 3 : 1, 4 : 1,
-        5 : 1, 6 : 0, 7 : 1, 8 : 1, 9 : 0,
+        5 : 1, 6 : 0, 7 : 1, 8 : 1, 9 : 0, 
         10 : 1, 11 : 0, 12 : 0, 13 : 1, 14 : 0
     }
 
     # Z-Score
     if norm_case == 0:
+        train_data = data
         mean_arr = np.zeros(15)
         std_arr = np.zeros(15)
-        print(train_data)
 
         for i in range(15):
             # Compute mean
-            mean_temp = 0
-            mean_temp = sum(concate_data[i])
-            mean_arr[i] = mean_temp / float(len(concate_data[i]))
+            mean_temp = sum(train_data[i])
+            mean_arr[i] = mean_temp / float(len(train_data[i]))
         
             # Compute std
             std_temp = 0
-            for j in range(len(concate_data[i])):
-                std_temp += (concate_data[i][j] - mean_arr[i])**2
-            std_arr[i] = (std_temp / float((len(concate_data[i] - 1))))**0.5
+            for j in range(len(train_data[i])):
+                std_temp += (train_data[i][j] - mean_arr[i])**2
+            std_arr[i] = (std_temp / float((len(train_data[i] - 1))))**0.5
 
             # Create normalize data
             train_data[i] -= mean_arr[i]
             train_data[i] = np.round(train_data[i] / std_arr[i], dic_data_round[i]+1)
-            test_data[i] -= mean_arr[i]
-            test_data[i] = np.round(test_data[i] / std_arr[i], dic_data_round[i]+1)
-        return train_data, test_data
+        return train_data, mean_arr, std_arr
 
     # Max-Min
     elif norm_case == 1:
+        train_data = data
         for i in range(15):
-            max_temp = max(concate_data[i])
-            min_temp = min(concate_data[i])
-            train_data[i] = np.round((train_data[i] - min_temp) / (max_temp - min_temp), dic_data_round[i]+1)
-            test_data[i] = np.round((test_data[i] - min_temp) / (max_temp - min_temp), dic_data_round[i]+1)
-        return train_data, test_data
+            max_temp = max(train_data[i])
+            min_temp = min(train_data[i])
+            train_data[i] = np.round((data[i] - min_temp) / (max_temp - min_temp), dic_data_round[i]+1)
+        return train_data, max_temp, min_temp
     
     # MaxAbs
     elif norm_case == 2:
+        train_data = data
         for i in range(15):
-            maxabs_temp = abs(max(concate_data[i]))
+            maxabs_temp = abs(max(train_data[i]))
             train_data[i] = np.round(train_data[i] / maxabs_temp, dic_data_round[i]+1)
-            test_data[i] = np.round(test_data[i] / maxabs_temp, dic_data_round[i]+1)
-        return train_data, test_data
+        return train_data, maxabs_temp
 
     # RobustScaler
     elif norm_case == 3:
+        train_data = data
 
         return train_data
+
+    # Normalize Testing Data
+    elif norm_case == 4:
+        test_data = data
+        for i in range(15):
+            test_data[i] -= mean_arr[i]
+            test_data[i] = np.round(test_data[i] / std_arr[i], dic_data_round[i]+1)
+        return test_data
 
     else:
         print('No define the normalize method, please check again')
-        return train_data
+        return data
 
 '''
 Filter valid data
@@ -136,6 +140,56 @@ def valid(x):
             del x[j][count[i]]
     return np.array(x)
 
-count = []
-train_data = np.ndarray.tolist(train_data)
-train_data = valid(train_data)
+
+'''
+Testing Data
+'''
+# def test_data(test_data):
+#     # test_x = np.array(test_data)
+#     with open('./model/weight_best.pickle', 'rb') as f:
+#         w = pickle.load(f)
+#     with open('./model/bias_best.pickle', 'rb') as f:
+#         bias = pickle.load(f)
+    
+#     with open('./testing_result/my_sol_best.csv', 'w', newline='') as csvf:
+#         # 建立 CSV 檔寫入器
+#         writer = csv.writer(csvf)
+#         writer.writerow(['Id','Predicted'])
+
+#         print(test_x.shape) 
+#         for i in range(int(test_x.shape[0])):
+#             # Prediction of linear regression 
+#             prediction = (np.dot(np.reshape(w,-1),test_x[i]) + bias)[0]
+#             writer.writerow([i, prediction] )
+
+def parse2test(data, feats):
+    x = []
+    for i in range(90):
+        x_tmp = data[feats, 8*i:8*i+8]
+        x.append(x_tmp.reshape(-1,))
+
+    # x.shape: (n, 15, 8)
+    x = np.array(x)
+    return x
+
+
+test_data = pd.read_csv('./dataset/test.csv')
+test_data = test_data.values
+test_data = np.transpose(np.array(np.float64(test_data)))
+feats = [1, 2, 3, 4, 6, 7, 8, 9, 13, 14]
+test_x = parse2test(test_data, feats)
+with open('./model/weight_best.pickle', 'rb') as f:
+    w = pickle.load(f)
+with open('./model/bias_best.pickle', 'rb') as f:
+    bias = pickle.load(f)
+
+with open('./testing_result/my_sol_best.csv', 'w', newline='') as csvf:
+    # 建立 CSV 檔寫入器
+    writer = csv.writer(csvf)
+    writer.writerow(['Id','Predicted'])
+
+    print(test_x.shape) 
+    for i in range(int(test_x.shape[0])):
+        # Prediction of linear regression 
+        prediction = (np.dot(np.reshape(w,-1),test_x[i]) + bias)[0]
+        writer.writerow([i, prediction] )
