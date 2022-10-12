@@ -3,7 +3,7 @@
 ## How to choose features of data
 * After observing the training data visualized image, you can be aware of the relationship between the PM2.5 feature and the others.
 * For instance, the CO image, NO image, NO2 image, and NOx image are much more correlated with PM2.5.
-![co](https://imgur.com/73t0b9Q.png)![no](https://imgur.com/tSGtNe9.png)![no2](https://imgur.com/IobYzpN.png)![nox](https://imgur.com/vyz8COx)![pm2.5](https://imgur.com/acbWSvK.png)
+![co](https://imgur.com/73t0b9Q.png)![no](https://imgur.com/tSGtNe9.png)![no2](https://imgur.com/IobYzpN.png)![nox](https://imgur.com/vyz8COx.png)![pm2.5](https://imgur.com/acbWSvK.png)
 * I also choose PM10, WS_HR, RAINFALL, RH,  WIND_SPEED, and PM2.5 which you can see [here](/HW1/Programming/train_data_img/)
 * I used Zscore normalization to implement in my project and can see as below![zscore_CO](https://imgur.com/BTmhmRm.png)![zscore_NO](https://imgur.com/7mz2uHW.png)![zscore_NO2](https://imgur.com/NiF1vxl.png)![zscore_NOx](https://imgur.com/gW6xij3.png)
 * You can see the different result of using or unusing normalization with the same config.![use or unuse normalization](https://imgur.com/hk2QjkB.png)
