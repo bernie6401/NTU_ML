@@ -49,7 +49,10 @@ def visul_data(data, path, norm_type=0):
         plt.scatter(j, data[i])
         plt.xlabel('i-th data')
         plt.ylabel(dic_data_title[i])
-        plt.savefig(path + dic_data_title[i] + dic_norm_type[norm_type])
+        if norm_type == -1:
+            plt.savefig(path + dic_data_title[i] + '.png')
+        else:
+            plt.savefig(path + dic_data_title[i] + dic_norm_type[norm_type])
         plt.show()
 
 '''
@@ -176,20 +179,22 @@ def parse2test(data, feats):
 test_data = pd.read_csv('./dataset/test.csv')
 test_data = test_data.values
 test_data = np.transpose(np.array(np.float64(test_data)))
-feats = [1, 2, 3, 4, 6, 7, 8, 9, 13, 14]
-test_x = parse2test(test_data, feats)
-with open('./model/weight_best.pickle', 'rb') as f:
-    w = pickle.load(f)
-with open('./model/bias_best.pickle', 'rb') as f:
-    bias = pickle.load(f)
+# feats = [1, 2, 3, 4, 6, 7, 8, 9, 13, 14]
+# test_x = parse2test(test_data, feats)
+# with open('./model/weight_best.pickle', 'rb') as f:
+#     w = pickle.load(f)
+# with open('./model/bias_best.pickle', 'rb') as f:
+#     bias = pickle.load(f)
 
-with open('./testing_result/my_sol_best.csv', 'w', newline='') as csvf:
-    # 建立 CSV 檔寫入器
-    writer = csv.writer(csvf)
-    writer.writerow(['Id','Predicted'])
+# with open('./testing_result/my_sol_best.csv', 'w', newline='') as csvf:
+#     # 建立 CSV 檔寫入器
+#     writer = csv.writer(csvf)
+#     writer.writerow(['Id','Predicted'])
 
-    print(test_x.shape) 
-    for i in range(int(test_x.shape[0])):
-        # Prediction of linear regression 
-        prediction = (np.dot(np.reshape(w,-1),test_x[i]) + bias)[0]
-        writer.writerow([i, prediction] )
+#     print(test_x.shape) 
+#     for i in range(int(test_x.shape[0])):
+#         # Prediction of linear regression 
+#         prediction = (np.dot(np.reshape(w,-1),test_x[i]) + bias)[0]
+#         writer.writerow([i, prediction] )
+
+visul_data(test_data, './test_data_img/', norm_type=-1)
