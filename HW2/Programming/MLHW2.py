@@ -397,6 +397,7 @@ if __name__ == '__main__':
         '''Model & Param Prepare'''
         # model = FaceExpressionNet(n_chansl=args.channel_num)
         model = models.resnet18(pretrained=False)
+        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         if args.checkpoint:
             print("Loading pretrained weights...", args.checkpoint)
             checkpoint = torch.load(args.checkpoint)
