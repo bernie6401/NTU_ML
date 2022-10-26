@@ -36,14 +36,16 @@ def parse_args():
 
     parser.add_argument('--weight_d', type=float, default=1e-2, help='Adjust weight decay')
     parser.add_argument('--momentum', default=0.9, type=float, help='Momentum for sgd')
-    parser.add_argument('-c', '--checkpoint', type=str, default='./model/1025_4_4Level/epoch30_acc0.6753.pth', help='Pytorch checkpoint file path')
-    parser.add_argument('--mode', type=str, default='val', help='train or test mode')
+    parser.add_argument('-c', '--checkpoint', type=str, default=None, help='Pytorch checkpoint file path')  #'./model/1025_4_4Level/epoch30_acc0.6753.pth'
+    parser.add_argument('--mode', type=str, default='train', help='train or test mode')
     parser.add_argument('--gamma', type=float, default=0.5, help='Initial gamma for scheduler and the default is 0.8.')
     parser.add_argument('--step', type=int, default=20, help='Initial step for scheduler and the default is 10.')
     parser.add_argument('--channel_num', type=int, default=64, help='Revise channel quantity in network')
 
     parser.add_argument('--wandb', action='store_true')
     parser.add_argument('-p', '--plot_cm', action='store_true', help='Ploting confusion matrix.')
+    parser.add_argument('--data_aug', action='store_true', help='Use data augmentation or not.')
+    parser.add_argument('--early_stop', action='store_true', help='Use early stopping technique or not.')
     return parser.parse_args()
 
 def wandb_update():
@@ -137,22 +139,21 @@ train_set, valid_set = load_train_data(TRA_PATH, LABEL_PATH)
 test_set = load_test_data(TST_PATH)
 
 '''Aumentation'''
-transform_set = [
-    # transforms.Resize((32, 32)),    # Resize image to a fitting size
-    # transforms.RandomResizedCrop(size=224, scale=(0.5, 0.5)), # Resized crop image in random
-    # transforms.CenterCrop(32),     # Cutting image by original center to a fitting size
-    transforms.RandomHorizontalFlip(p=0.5),   # Horizontal Flip in random
-    # transforms.RandomVerticalFlip(p=0.5),   # Vertical Flip in random
-    transforms.ColorJitter(brightness=(0, 5), contrast=(0, 5), saturation=(0, 5), hue=(-0.1, 0.1)),  # Adjust image brightness, contrast, satuation and hue in random
-    transforms.RandomRotation(30, center=(0, 0), expand=False),   # expand only for center rotation
-]
-size = 48
-transform_aug = transforms.Compose([
-    transforms.RandomChoice(transform_set),
-    transforms.CenterCrop(size),     # Cutting image by original center to a fitting size
-    transforms.Pad((64 - size)//2, fill=0, padding_mode="constant"), 
-])
-# transform_aug = None
+transform_aug = None
+if args.data_aug:
+    transform_set = [
+        transforms.RandomHorizontalFlip(p=0.5),   # Horizontal Flip in random
+        # transforms.RandomVerticalFlip(p=0.5),   # Vertical Flip in random
+        transforms.ColorJitter(brightness=(0, 5), contrast=(0, 5), saturation=(0, 5), hue=(-0.1, 0.1)),  # Adjust image brightness, contrast, satuation and hue in random
+        transforms.RandomRotation(30, center=(0, 0), expand=False),]   # expand only for center rotation
+    # size = 48
+    # transform_aug = transforms.Compose([
+    #     transforms.RandomChoice(transform_set),
+    #     transforms.CenterCrop(size),     # Cutting image by original center to a fitting size
+    #     transforms.Pad((64 - size)//2, fill=0, padding_mode="constant"),])
+    transform_aug = transforms.Compose([
+        transforms.RandomChoice(transform_set),
+        transforms.Resize(224)])
 
 
 
@@ -427,19 +428,20 @@ if __name__ == '__main__':
             
 
             # Early-Stopping
-            if valid_loss > the_last_loss:
-                trigger_times += 1
-                print('trigger times:', trigger_times)
+            if args.early_stop:
+                if valid_loss > the_last_loss:
+                    trigger_times += 1
+                    print('trigger times:', trigger_times)
 
-                if trigger_times >= patience:
-                    print('Early stopping!\nStart to test process.')
-                    break
+                    if trigger_times >= patience:
+                        print('Early stopping!\nStart to test process.')
+                        break
 
-            else:
-                print('trigger times: 0')
-                trigger_times = 0
+                else:
+                    print('trigger times: 0')
+                    trigger_times = 0
 
-            the_last_loss = valid_loss
+                the_last_loss = valid_loss
 
 
             if better(acc_record):
@@ -449,7 +451,7 @@ if __name__ == '__main__':
         del model
         
     '''Plot Confusion Matrix'''
-    if args.plot_cm or args.mode=='val':
+    if args.plot_cm and args.mode=='val':
         model = FaceExpressionNet(n_chansl=args.channel_num)
         model.load_state_dict(torch.load(args.checkpoint)["model_state_dict"], strict=False)
         model = model.cuda()
@@ -466,7 +468,6 @@ if __name__ == '__main__':
 
     if args.mode == 'test':
         model = FaceExpressionNet(n_chansl=args.channel_num)
-        # model.load_state_dict(torch.load(args.checkpoint))
         model.load_state_dict(torch.load(args.checkpoint)["model_state_dict"], strict=False)
         model = model.cuda()
         test(test_loader, model)
