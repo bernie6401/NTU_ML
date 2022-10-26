@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 
 from torch.optim import Adam
-from torchvision import transforms
+from torchvision import transforms, models
 from torch.utils.data import DataLoader, Dataset
 from PIL import Image
 
@@ -379,7 +379,7 @@ def save_checkpoint(valid_acc, acc_record, epoch, optimizer_state_dict, prefix):
         torch.save({'iter': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer_state_dict},
-                 os.path.join(prefix, "epoch" + str(epoch) + "_acc" + str(round(valid_acc, 4)) + ".pth"))
+                 os.path.join(prefix, "res18_epoch" + str(epoch) + "_acc" + str(round(valid_acc, 4)) + ".pth"))
         print('model saved...')
 
 def better(acc_record):
@@ -395,7 +395,8 @@ if __name__ == '__main__':
         
 
         '''Model & Param Prepare'''
-        model = FaceExpressionNet(n_chansl=args.channel_num)
+        # model = FaceExpressionNet(n_chansl=args.channel_num)
+        model = models.resnet18(pretrained=False)
         if args.checkpoint:
             print("Loading pretrained weights...", args.checkpoint)
             checkpoint = torch.load(args.checkpoint)
