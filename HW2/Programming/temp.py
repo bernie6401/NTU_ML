@@ -243,3 +243,29 @@ transform_aug = transforms.Compose([
 #     plt.text(_x, _y, str(int(y[i])), ha='center', va= 'bottom', color='black', fontsize=12)
 # plt.show()
 # plt.savefig('./Img/data_distribution.png', format='png')
+
+import PIL.Image as Image
+import torchvision
+import matplotlib.pyplot as plt
+import numpy as np
+import warnings
+warnings.filterwarnings("ignore")
+imagepath='./dataset/train/10000.jpg'
+
+    
+# read image with PIL module
+img_pil = Image.open(imagepath, mode='r')
+img_pil = img_pil.convert('RGB')
+from torchvision import transforms
+from torchvision.transforms import functional as TF
+
+trans_toPIL = transforms.ToPILImage() # 將  "pytoch tensor" 或是  "numpy.ndarray" 轉換成 PIL Image.
+img_np = np.asarray(img_pil) # 將PIL image轉換成  "numpy.ndarray" 
+print('image type before convert:{}'.format(type(img_np)))
+img_pil = trans_toPIL(img_np)
+print('image type after convert:{}'.format(type(img_pil)))
+
+size = 224
+transform =  transforms.Resize(size)
+img_pil_normal = transform(img_pil)
+img_pil_normal.show()
