@@ -140,20 +140,19 @@ test_set = load_test_data(TST_PATH)
 
 '''Aumentation'''
 transform_aug = None
+transform_set = []
 if args.data_aug:
     transform_set = [
         transforms.RandomHorizontalFlip(p=0.5),   # Horizontal Flip in random
         # transforms.RandomVerticalFlip(p=0.5),   # Vertical Flip in random
         transforms.ColorJitter(brightness=(0, 5), contrast=(0, 5), saturation=(0, 5), hue=(-0.1, 0.1)),  # Adjust image brightness, contrast, satuation and hue in random
         transforms.RandomRotation(30, center=(0, 0), expand=False),]   # expand only for center rotation
-    # size = 48
-    # transform_aug = transforms.Compose([
-    #     transforms.RandomChoice(transform_set),
-    #     transforms.CenterCrop(size),     # Cutting image by original center to a fitting size
-    #     transforms.Pad((64 - size)//2, fill=0, padding_mode="constant"),])
+    size = 48
     transform_aug = transforms.Compose([
         transforms.RandomChoice(transform_set),
-        transforms.Resize(224)])
+        transforms.CenterCrop(size),     # Cutting image by original center to a fitting size
+        transforms.Pad((64 - size)//2, fill=0, padding_mode="constant"),])
+# transform_aug = transforms.Compose([transforms.Resize(224)])
 
 
 
@@ -419,7 +418,7 @@ if __name__ == '__main__':
         
 
         '''Start Training'''
-        acc_record = [0.62] # The initial acc is 0.55, so it must greater than 0.55 before saving
+        acc_record = [0.55] # The initial acc is 0.55, so it must greater than 0.55 before saving
         the_last_loss = 100
         patience = 5    # If early-stopping trigger time >= patience, then stop training
         trigger_times = 0
@@ -454,7 +453,9 @@ if __name__ == '__main__':
         
     '''Plot Confusion Matrix'''
     if args.plot_cm and args.mode=='val':
-        model = FaceExpressionNet(n_chansl=args.channel_num)
+        # model = FaceExpressionNet(n_chansl=args.channel_num)
+        model = models.resnet18(pretrained=False)
+        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         model.load_state_dict(torch.load(args.checkpoint)["model_state_dict"], strict=False)
         model = model.cuda()
         loss_fn = nn.CrossEntropyLoss()
@@ -469,7 +470,9 @@ if __name__ == '__main__':
 
 
     if args.mode == 'test':
-        model = FaceExpressionNet(n_chansl=args.channel_num)
+        # model = FaceExpressionNet(n_chansl=args.channel_num)
+        model = models.resnet18(pretrained=False)
+        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         model.load_state_dict(torch.load(args.checkpoint)["model_state_dict"], strict=False)
         model = model.cuda()
         test(test_loader, model)
