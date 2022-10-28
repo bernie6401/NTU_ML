@@ -111,7 +111,7 @@ np.random.seed(SEED)
 """********************************************* 
   Process data
  *********************************************"""
-def load_train_data(img_path, label_path, valid_ratio=0.12):
+def load_train_data(img_path, label_path, valid_ratio=0.2):
     train_label = pd.read_csv(label_path)['label'].values.tolist()
     train_image = [f'{img_path}/{i+10000}.jpg' for i in range(len(train_label)-1)]
     
@@ -147,11 +147,12 @@ if args.data_aug:
         # transforms.RandomVerticalFlip(p=0.5),   # Vertical Flip in random
         transforms.ColorJitter(brightness=(0, 5), contrast=(0, 5), saturation=(0, 5), hue=(-0.1, 0.1)),  # Adjust image brightness, contrast, satuation and hue in random
         transforms.RandomRotation(30, center=(0, 0), expand=False),]   # expand only for center rotation
-    size = 48
+    # size = 64
     transform_aug = transforms.Compose([
         transforms.RandomChoice(transform_set),
-        transforms.CenterCrop(size),     # Cutting image by original center to a fitting size
-        transforms.Pad((64 - size)//2, fill=0, padding_mode="constant"),])
+        # transforms.CenterCrop(size),     # Cutting image by original center to a fitting size
+        # transforms.Pad((64 - size)//2, fill=0, padding_mode="constant"),
+        ])
 # transform_aug = transforms.Compose([transforms.Resize(224)])
 
 
@@ -241,42 +242,43 @@ class FaceExpressionNet(nn.Module):
             nn.Conv2d(1, n_chansl, kernel_size=3, padding=1),
             nn.BatchNorm2d(n_chansl, eps=1e-05, affine=True),
             nn.LeakyReLU(negative_slope=0.05),
-            nn.MaxPool2d((2, 2)),
+            nn.MaxPool2d((2, 2)),   # (Batch_size, n_chansl, 32, 32)->(B, C, H, W)
 
-            nn.Conv2d(n_chansl, n_chansl*2, kernel_size=3, padding=1),
-            nn.BatchNorm2d(n_chansl*2, eps=1e-05, affine=True),
-            nn.LeakyReLU(negative_slope=0.05),
-            nn.MaxPool2d((2, 2)),
-
-            nn.Conv2d(n_chansl*2, n_chansl*4, kernel_size=3, padding=1),
+            nn.Conv2d(n_chansl, n_chansl*4, kernel_size=3, padding=1),
             nn.BatchNorm2d(n_chansl*4, eps=1e-05, affine=True),
             nn.LeakyReLU(negative_slope=0.05),
-            nn.MaxPool2d((2, 2)),
+            nn.MaxPool2d((2, 2)),   # (Batch_size, n_chansl*2, 16, 16)->(B, C, H, W)
 
-            nn.Conv2d(n_chansl*4, n_chansl*2, kernel_size=3, padding=1),
-            nn.BatchNorm2d(n_chansl*2, eps=1e-05, affine=True),
+            nn.Conv2d(n_chansl*4, n_chansl*8, kernel_size=3, padding=1),
+            nn.BatchNorm2d(n_chansl*8, eps=1e-05, affine=True),
             nn.LeakyReLU(negative_slope=0.05),
-            nn.MaxPool2d((2, 2)),
+            nn.MaxPool2d((2, 2)),   # (Batch_size, n_chansl*4, 8, 8)->(B, C, H, W)
+
+            nn.Conv2d(n_chansl*8, n_chansl*16, kernel_size=3, padding=1),
+            nn.BatchNorm2d(n_chansl*16, eps=1e-05, affine=True),
+            nn.LeakyReLU(negative_slope=0.05),
+            nn.MaxPool2d((2, 2)),   # (Batch_size, n_chansl*8, 4, 4)->(B, C, H, W)
         )
         self.fc_4layer = nn.Sequential(
-            nn.Linear(n_chansl*2 * 4 * 4, 7),
+            nn.Linear(n_chansl*16 * 4 * 4, n_chansl*4 * 4 * 4),
+            nn.Linear(n_chansl*4 * 4 * 4, 7)
         )
 
         self.conv_3layer = nn.Sequential(
             nn.Conv2d(1, n_chansl, kernel_size=3, padding=1),
             nn.BatchNorm2d(n_chansl, eps=1e-05, affine=True),
             nn.LeakyReLU(negative_slope=0.05),
-            nn.MaxPool2d((2, 2)),   # (Batch_size, 32, 32, 32)->(B, C, H, W)
+            nn.MaxPool2d((2, 2)),   # (Batch_size, n_chansl, 32, 32)->(B, C, H, W)
 
             nn.Conv2d(n_chansl, n_chansl//2, kernel_size=3, padding=1),
             nn.BatchNorm2d(n_chansl//2, eps=1e-05, affine=True),
             nn.LeakyReLU(negative_slope=0.05),
-            nn.MaxPool2d((2, 2)),   # (Batch_size, 64, 16, 16)->(B, C, H, W)
+            nn.MaxPool2d((2, 2)),   # (Batch_size, n_chansl*2, 16, 16)->(B, C, H, W)
 
             nn.Conv2d(n_chansl//2, n_chansl//4, kernel_size=3, padding=1),
             nn.BatchNorm2d(n_chansl//4, eps=1e-05, affine=True),
             nn.LeakyReLU(negative_slope=0.05),
-            nn.MaxPool2d((2, 2)),   # (Batch_size, 128, 8, 8)->(B, C, H, W)
+            nn.MaxPool2d((2, 2)),   # (Batch_size, n_chansl*4, 8, 8)->(B, C, H, W)
         )
         self.fc_3layer = nn.Sequential(
             nn.Linear(n_chansl//4 * 8 * 8, 7),
@@ -378,7 +380,7 @@ def save_checkpoint(valid_acc, acc_record, epoch, optimizer_state_dict, prefix):
         torch.save({'iter': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer_state_dict},
-                 os.path.join(prefix, "res18_epoch" + str(epoch) + "_acc" + str(round(valid_acc, 4)) + ".pth"))
+                 os.path.join(prefix, "epoch" + str(epoch) + "_acc" + str(round(valid_acc, 4)) + ".pth"))
         print('model saved...')
 
 def better(acc_record):
@@ -394,9 +396,9 @@ if __name__ == '__main__':
         
 
         '''Model & Param Prepare'''
-        # model = FaceExpressionNet(n_chansl=args.channel_num)
-        model = models.resnet18(pretrained=False)
-        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        model = FaceExpressionNet(n_chansl=args.channel_num)
+        # model = models.resnet18(pretrained=False)
+        # model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         if args.checkpoint:
             print("Loading pretrained weights...", args.checkpoint)
             checkpoint = torch.load(args.checkpoint)
@@ -418,7 +420,7 @@ if __name__ == '__main__':
         
 
         '''Start Training'''
-        acc_record = [0.55] # The initial acc is 0.55, so it must greater than 0.55 before saving
+        acc_record = [0.62] # The initial acc is 0.55, so it must greater than 0.55 before saving
         the_last_loss = 100
         patience = 5    # If early-stopping trigger time >= patience, then stop training
         trigger_times = 0
@@ -453,9 +455,9 @@ if __name__ == '__main__':
         
     '''Plot Confusion Matrix'''
     if args.plot_cm and args.mode=='val':
-        # model = FaceExpressionNet(n_chansl=args.channel_num)
-        model = models.resnet18(pretrained=False)
-        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        model = FaceExpressionNet(n_chansl=args.channel_num)
+        # model = models.resnet18(pretrained=False)
+        # model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         model.load_state_dict(torch.load(args.checkpoint)["model_state_dict"], strict=False)
         model = model.cuda()
         loss_fn = nn.CrossEntropyLoss()
@@ -470,9 +472,9 @@ if __name__ == '__main__':
 
 
     if args.mode == 'test':
-        # model = FaceExpressionNet(n_chansl=args.channel_num)
-        model = models.resnet18(pretrained=False)
-        model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        model = FaceExpressionNet(n_chansl=args.channel_num)
+        # model = models.resnet18(pretrained=False)
+        # model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
         model.load_state_dict(torch.load(args.checkpoint)["model_state_dict"], strict=False)
         model = model.cuda()
         test(test_loader, model)
