@@ -191,7 +191,7 @@ transform_aug = transforms.Compose([
 ])
 
 
-# Computing mean and std of training dataset
+'''Computing mean and std of training dataset'''
 # train_set, valid_set = load_train_data(TRA_PATH, LABEL_PATH)
 # transform = transforms.Compose([transforms.ToTensor()])
 # train_dataset = FaceExpressionDataset(train_set, transform)
@@ -204,8 +204,7 @@ transform_aug = transforms.Compose([
 # print(img5.view(1, -1).std(dim=1))
 
 
-# Implement Augmentation
-# Implement Augmentation
+'''Implement Augmentation'''
 # train_set, valid_set = load_train_data(TRA_PATH, LABEL_PATH)
 # train_dataset = FaceExpressionDataset(train_set, transform_aug)
 # train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
@@ -214,7 +213,7 @@ transform_aug = transforms.Compose([
 #     output = model(img)
 
 
-# Plot Data Distribution
+'''Plot Data Distribution'''
 # labels_name = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 # data_dist = data_distribution(LABEL_PATH)
 # dict = {
@@ -244,28 +243,27 @@ transform_aug = transforms.Compose([
 # plt.show()
 # plt.savefig('./Img/data_distribution.png', format='png')
 
-import PIL.Image as Image
-import torchvision
-import matplotlib.pyplot as plt
-import numpy as np
-import warnings
-warnings.filterwarnings("ignore")
-imagepath='./dataset/train/10000.jpg'
 
-    
-# read image with PIL module
-img_pil = Image.open(imagepath, mode='r')
-img_pil = img_pil.convert('RGB')
-from torchvision import transforms
-from torchvision.transforms import functional as TF
-
-trans_toPIL = transforms.ToPILImage() # 將  "pytoch tensor" 或是  "numpy.ndarray" 轉換成 PIL Image.
-img_np = np.asarray(img_pil) # 將PIL image轉換成  "numpy.ndarray" 
-print('image type before convert:{}'.format(type(img_np)))
-img_pil = trans_toPIL(img_np)
-print('image type after convert:{}'.format(type(img_pil)))
-
-size = 224
-transform =  transforms.Resize(size)
-img_pil_normal = transform(img_pil)
-img_pil_normal.show()
+'''Check the image after transforming'''
+# import PIL.Image as Image
+# import torchvision
+# import matplotlib.pyplot as plt
+# import numpy as np
+# import warnings
+# warnings.filterwarnings("ignore")
+# imagepath='./dataset/train/10000.jpg' 
+# # read image with PIL module
+# img_pil = Image.open(imagepath, mode='r')
+# img_pil = img_pil.convert('RGB')
+# from torchvision import transforms
+# from torchvision.transforms import functional as TF
+# trans_toPIL = transforms.ToPILImage() # 將  "pytoch tensor" 或是  "numpy.ndarray" 轉換成 PIL Image.
+# img_np = np.asarray(img_pil) # 將PIL image轉換成  "numpy.ndarray" 
+# print('image type before convert:{}'.format(type(img_np)))
+# img_pil = trans_toPIL(img_np)
+# print('image type after convert:{}'.format(type(img_pil)))
+# size = 224
+# # transform = transforms.Resize(size)
+# transform = transforms.RandomRotation(30, center=(0, 0), expand=True)
+# img_pil_normal = transform(img_pil)
+# img_pil_normal.show()
