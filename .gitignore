@@ -11,7 +11,7 @@ HW2/Programming/dataset/train/
 HW2/Programming/model/
 HW2/Programming/wandb/
 HW2/Programming/~$report.docx
-HW2/Programming/~$-2022fall-hw1-report-template.docx
+HW2/Programming/~$-2022fall-hw2-report-template.docx
 HW2/R11921A16_hw2.zip
 HW2/epoch115_acc0.6318.pth
 HW2/epoch490_acc0.6243.pth
@@ -20,3 +20,5 @@ HW2/MLHW2.py
 HW3/Programming/model/*
 HW3/Programming/wandb/
 HW3/Programming/dataset/
+HW3/Programming/~$report.docx
+HW3/Programming/~$ml-2022-fall-hw3.pptx
