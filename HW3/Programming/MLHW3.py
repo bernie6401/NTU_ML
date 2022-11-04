@@ -74,6 +74,11 @@ def wandb_update():
     config.gamma = args.gamma
     config.step = args.step
 
+    config.latent_dir = args.latent_dim
+    config.reduced_dim = args.reduced_dim
+    config.num_iter = args.num_iter
+    config.reduced_method = args.reduced_method
+
     config.data_aug = args.data_aug
     config.scheduler = args.scheduler
     # config.channel_num = args.channel_num
