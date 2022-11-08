@@ -5,7 +5,7 @@ from PIL import Image
 import torchvision.transforms as T
 import torch.nn as nn
 import random
-# from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
@@ -96,14 +96,14 @@ def clustering(model, device, loader, n_iter, reduced_method, reduced_dim, perpl
         pca = PCA(n_components=reduced_dim, copy=False, whiten=True, svd_solver='full')
         latent_vec = pca.fit_transform(latent_vec)
 
-    # kmeans = KMeans(n_clusters=2, random_state=0, max_iter=n_iter).fit(latent_vec)
-    return latent_vec#kmeans.labels_
+    kmeans = KMeans(n_clusters=2, random_state=0, max_iter=n_iter).fit(latent_vec)
+    return kmeans.labels_, latent_vec#
 
 
 NUM_EPOCH = 5
 BATCH_SIZE = 32
 LATENT_DIM = 32
-REDUCED_DIM = 8
+REDUCED_DIM = 2
 NUM_ITER = 1000
 REDUCED_METHOD = 'pca'   # 'pca' or 'tsne'
 lr = 5e-4
@@ -211,17 +211,39 @@ if __name__ == '__main__':
     checkpoint = torch.load(checkpoint)
     model.load_state_dict(checkpoint["model_state_dict"], strict=False)
 
-    predicted = clustering(model, device, test_loader, NUM_ITER, reduced_method=REDUCED_METHOD, reduced_dim=REDUCED_DIM, perplexity=15)
-    print(predicted)
-    print(len(predicted))
-    # transform = T.ToPILImage()
-    # criterion = nn.MSELoss()
-    # for i, (image_aug, image) in enumerate(train_loader):
-    #     image = image.to(device, dtype=torch.float)
-    #     image_aug = image_aug.to(device, dtype=torch.float)
-    #     _, reconsturct = model(image_aug)
-    #     image = torch.squeeze(image, 0)
-    #     img = transform(image)
-    #     loss = criterion(reconsturct, image)
-    #     img.save("./img/hwq2_reconstruct_" + str(i) + ".png")
-    #     print(loss)
+    '''implement PCA for Q3'''
+    # _, predicted = clustering(model, device, test_loader, NUM_ITER, reduced_method=REDUCED_METHOD, reduced_dim=REDUCED_DIM, perplexity=15)
+    # x = []
+    # y = []
+    # for i in range(len(predicted)//2):
+    #     x.append(predicted[i][0])
+    #     y.append(predicted[i][1])
+    # plt.scatter(x, y, color = 'red')
+
+    # x = []
+    # y = []
+    # for i in range(len(predicted)//2, len(predicted)):
+    #     x.append(predicted[i][0])
+    #     y.append(predicted[i][1])
+    # plt.scatter(x, y, color = 'blue')
+    # plt.savefig('./img/hwq3_pca.png')
+
+    '''implement PCA for Q3'''
+    REDUCED_METHOD = 'tsne'
+    _, predicted = clustering(model, device, test_loader, NUM_ITER, reduced_method=REDUCED_METHOD, reduced_dim=REDUCED_DIM, perplexity=15)
+    x = []
+    y = []
+    for i in range(len(predicted)//2):
+        x.append(predicted[i][0])
+        y.append(predicted[i][1])
+    plt.scatter(x, y, color = 'yellow')
+
+    x = []
+    y = []
+    for i in range(len(predicted)//2, len(predicted)):
+        x.append(predicted[i][0])
+        y.append(predicted[i][1])
+    plt.scatter(x, y, color = 'green')
+    plt.savefig('./img/hwq3_tsne_' + str(NUM_ITER) + 'iter.png')
+    # plt.savefig('./img/hwq3_tsne_' + str(NUM_ITER) + 'iter+pca.png')
+    # plt.show()
