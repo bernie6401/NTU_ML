@@ -146,27 +146,27 @@ class Dataset(data.Dataset):
   Define Model Architerchure
  *********************************************'''
 class Net(nn.Module):
-    def __init__(self, image_channels=3, latent_dim=128):
+    def __init__(self, image_channels=3, latent_dim=128, n_chansl=32):
         super(Net, self).__init__()
         self.latent_dim = latent_dim
         self.img_size = 32
         
         self.encoder = nn.Sequential(
-            nn.Conv2d(image_channels, 32, kernel_size=3, stride=2, padding=1),
+            nn.Conv2d(image_channels, n_chansl, kernel_size=3, stride=2, padding=1),
             nn.ReLU(),
             # TODO: define your own structure
         )
         
         # TODO: check the dimension if you modified the structure
-        self.fc1 = nn.Linear(8192, self.latent_dim)
+        self.fc1 = nn.Linear(n_chansl * (self.img_size//2)**2, self.latent_dim)
 
         # TODO: check the dimension if you modified the structure
-        self.fc2 = nn.Linear(self.latent_dim, 8192)
+        self.fc2 = nn.Linear(self.latent_dim, n_chansl * (self.img_size//2)**2)
 
         self.decoder = nn.Sequential(
            # TODO: define yout own structure
            # Hint: nn.ConvTranspose2d(...)
-           nn.ConvTranspose2d(32, image_channels, kernel_size=3, stride=2, padding=1, output_padding=1),
+           nn.ConvTranspose2d(n_chansl, image_channels, kernel_size=3, stride=2, padding=1, output_padding=1),
            nn.ReLU()
         )
                 
@@ -178,6 +178,71 @@ class Net(nn.Module):
         
         return latent_vec, x_res
 
+class Net1(nn.Module):
+    def __init__(self, image_channels=3, latent_dim=128):
+        super(Net, self).__init__()
+        self.latent_dim = latent_dim
+        self.img_size = 32
+        
+        self.encoder = nn.Sequential(
+            nn.Conv2d(image_channels, 32, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(256, 512, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(512, 1024, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(1024, 2048, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(2048, 4096, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.Conv2d(4096, 8192, kernel_size=3, stride=2, padding=1),
+            nn.ReLU(),
+            # TODO: define your own structure
+        )
+        
+        # TODO: check the dimension if you modified the structure
+        self.fc1 = nn.Linear(8192, self.latent_dim) 
+
+        # TODO: check the dimension if you modified the structure
+        self.fc2 = nn.Linear(self.latent_dim, 8192)
+
+        self.decoder = nn.Sequential(
+           # TODO: define yout own structure
+           # Hint: nn.ConvTranspose2d(...)
+           nn.ConvTranspose2d(8192, 4096, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(4096, 2048, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(2048, 1024, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(1024, 512, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+           nn.ConvTranspose2d(32, image_channels, kernel_size=3, stride=2, padding=1),
+           nn.ReLU(),
+        )
+                
+    def forward(self, x):
+      
+        feature_map = self.encoder(x)
+        latent_vec = self.fc1(feature_map.reshape(feature_map.shape[0], -1))
+        feature_map2 = self.fc2(latent_vec)
+        # x_res = self.decoder(feature_map2)
+        x_res = self.decoder(feature_map2.reshape(feature_map2.shape[0], 8192, 1, 1))
+        return latent_vec, x_res
 
 '''********************************************* 
   Define Training Process
