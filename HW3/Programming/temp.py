@@ -197,6 +197,7 @@ if __name__ == '__main__':
 ''' ********************************************* 
     Report Qrestion 3
 ********************************************* '''
+'''
 if __name__ == '__main__':
     DATA_PATH = './dataset/visualization_X.npy'
     dataset = Dataset(DATA_PATH)
@@ -211,24 +212,24 @@ if __name__ == '__main__':
     checkpoint = torch.load(checkpoint)
     model.load_state_dict(checkpoint["model_state_dict"], strict=False)
 
-    '''implement PCA for Q3'''
-    # _, predicted = clustering(model, device, test_loader, NUM_ITER, reduced_method=REDUCED_METHOD, reduced_dim=REDUCED_DIM, perplexity=15)
-    # x = []
-    # y = []
-    # for i in range(len(predicted)//2):
-    #     x.append(predicted[i][0])
-    #     y.append(predicted[i][1])
-    # plt.scatter(x, y, color = 'red')
+    #implement PCA for Q3
+    _, predicted = clustering(model, device, test_loader, NUM_ITER, reduced_method=REDUCED_METHOD, reduced_dim=REDUCED_DIM, perplexity=15)
+    x = []
+    y = []
+    for i in range(len(predicted)//2):
+        x.append(predicted[i][0])
+        y.append(predicted[i][1])
+    plt.scatter(x, y, color = 'red')
 
-    # x = []
-    # y = []
-    # for i in range(len(predicted)//2, len(predicted)):
-    #     x.append(predicted[i][0])
-    #     y.append(predicted[i][1])
-    # plt.scatter(x, y, color = 'blue')
-    # plt.savefig('./img/hwq3_pca.png')
+    x = []
+    y = []
+    for i in range(len(predicted)//2, len(predicted)):
+        x.append(predicted[i][0])
+        y.append(predicted[i][1])
+    plt.scatter(x, y, color = 'blue')
+    plt.savefig('./img/hwq3_pca.png')
 
-    '''implement PCA for Q3'''
+    #implement PCA for Q3
     REDUCED_METHOD = 'tsne'
     _, predicted = clustering(model, device, test_loader, NUM_ITER, reduced_method=REDUCED_METHOD, reduced_dim=REDUCED_DIM, perplexity=15)
     x = []
@@ -247,3 +248,33 @@ if __name__ == '__main__':
     plt.savefig('./img/hwq3_tsne_' + str(NUM_ITER) + 'iter.png')
     # plt.savefig('./img/hwq3_tsne_' + str(NUM_ITER) + 'iter+pca.png')
     # plt.show()
+'''
+
+
+''' ********************************************* 
+    Implement Normalization
+********************************************* '''
+# train_set, valid_set = load_train_data(TRA_PATH, LABEL_PATH)
+# transform = transforms.Compose([transforms.ToTensor()])
+# train_dataset = FaceExpressionDataset(train_set, transform)
+# train_loader = DataLoader(train_dataset, batch_size=1, shuffle=False)
+if __name__ == '__main__':
+    DATA_PATH = './dataset/trainX.npy'
+    dataset = Dataset(DATA_PATH)
+
+    # set data loader
+    train_loader = data.DataLoader(dataset, batch_size=1, num_workers=1, shuffle=False)
+
+    img4 = []
+    for i, (img, _) in enumerate(train_loader):
+        img4.append(img)
+    img5 = torch.stack(img4, dim=3)
+    print(img5.view(3, -1).mean(dim=1))
+    print(img5.view(3, -1).std(dim=1))
+
+    # T1 = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    # T2 = torch.tensor([[10, 20, 30], [40, 50, 60], [70, 80, 90]])
+    # print(torch.stack((T1,T2),dim=0))
+    # print(torch.stack((T1,T2),dim=1))
+    # print(torch.stack((T1,T2),dim=2))
+    # print(torch.stack((T1,T2),dim=3))
