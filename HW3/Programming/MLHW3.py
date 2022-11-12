@@ -397,7 +397,7 @@ if __name__ == '__main__':
         test_loader = data.DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
         model = Net(latent_dim=LATENT_DIM).to(device)
         model = model.cuda()
-        model.load_state_dict(torch.load(args.checkpoint)["model_state_dict"], strict=False)
+        model.load_state_dict(torch.load(args.checkpoint["model_state_dict"]), strict=False)
         predicted = clustering(model, device, test_loader, NUM_ITER, reduced_method=REDUCED_METHOD, reduced_dim=REDUCED_DIM, perplexity=15)
         predicted = 1 - predicted
         write_output(predicted, './testing_result/pred.csv')
