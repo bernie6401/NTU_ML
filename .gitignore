@@ -23,3 +23,7 @@ HW3/Programming/dataset/
 HW3/Programming/~$report.docx
 HW3/Programming/~$ml-2022-fall-hw3.pptx
 *.tmp
+HW3/MLHW3.py
+HW3/epoch4_0.01263_latest_version.pth
+HW3/model_kaggle_choose.pth
+HW3/*.zip
