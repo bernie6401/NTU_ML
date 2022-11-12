@@ -124,9 +124,9 @@ class Dataset(data.Dataset):
         
     def normalize(self, img):
         # TODO: normalize the dataset 
-        transform_nor = transforms.Normalize(mean=(0.4749, 0.4805, 0.4395), std=(0.2377, 0.2324, 0.2646))
-        return transform_nor(img)
-        # return img
+        # transform_nor = transforms.Normalize(mean=(0.4749, 0.4805, 0.4395), std=(0.2377, 0.2324, 0.2646))
+        # return transform_nor(img)
+        return img
     
     def augment(self, img):
         # TODO: do augmentation while loading image
