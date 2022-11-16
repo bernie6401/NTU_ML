@@ -105,19 +105,19 @@ def parsing_text(text):
     # TODO: do data processing
     return text
 
-def load_train_label(path='dataset/train.csv'):
+def load_train_label(path='./dataset/train.csv'):
     tra_lb_pd = pd.read_csv(path)
     label = torch.FloatTensor(tra_lb_pd['label'].values)
     idx = tra_lb_pd['id'].tolist()
     text = [parsing_text(s).split(' ') for s in tra_lb_pd['text'].tolist()]
     return idx, text, label
 
-def load_train_nolabel(path='dataset/train_nolabel.csv'):
+def load_train_nolabel(path='./dataset/train_nolabel.csv'):
     tra_nlb_pd = pd.read_csv(path)
     text = [parsing_text(s).split(' ') for s in tra_nlb_pd['text'].tolist()]
     return None, text, None
 
-def load_test(path='dataset/test.csv'):
+def load_test(path='./dataset/test.csv'):
     tst_pd = pd.read_csv(path)
     idx = tst_pd['id'].tolist()
     text = [parsing_text(s).split(' ') for s in tst_pd['text'].tolist()]
@@ -200,14 +200,14 @@ class TwitterDataset(torch.utils.data.Dataset):
           labels = torch.FloatTensor([d[2] for d in data])
           return id_list, lengths, texts, labels
 
-train_idx, train_label_text, label = load_train_label('dataset/train.csv')
+train_idx, train_label_text, label = load_train_label('./dataset/train.csv')
 
 preprocessor = Preprocessor(train_label_text, w2v_config)
 
 train_idx, valid_idx, train_label_text, valid_label_text, train_label, valid_label = train_test_split(train_idx, train_label_text, label, test_size=0.5)
 train_dataset, valid_dataset = TwitterDataset(train_idx, train_label_text, train_label, preprocessor), TwitterDataset(valid_idx, valid_label_text, valid_label, preprocessor)
 
-test_idx, test_text = load_test('dataset/test.csv')
+test_idx, test_text = load_test('./dataset/test.csv')
 test_dataset = TwitterDataset(test_idx, test_text, None, preprocessor)
 
 train_loader = torch.utils.data.DataLoader(dataset = train_dataset,
