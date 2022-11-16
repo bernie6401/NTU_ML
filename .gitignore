@@ -27,3 +27,10 @@ HW3/MLHW3.py
 HW3/epoch4_0.01263_latest_version.pth
 HW3/model_kaggle_choose.pth
 HW3/*.zip
+
+
+HW4/Programming/model/*
+HW4/Programming/wandb/
+HW4/Programming/dataset/
+HW4/Programming/~$report.docx
+HW4/Programming/~$HW4_slide.pptx
