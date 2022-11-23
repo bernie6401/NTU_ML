@@ -1,13 +1,16 @@
-'''********************************************* 
-  Import packages
- *********************************************'''
+"""********************************************* 
+  Import packages.
+ *********************************************"""
 # other library
-from gensim.models import Word2Vec
 import os
 import csv
 import random
 import numpy as np
 import pandas as pd
+import warnings
+warnings.filterwarnings(action='ignore', category=UserWarning, module='gensim')
+warnings.filterwarnings(action='ignore', category=UserWarning)
+from gensim.models import Word2Vec
 from sklearn.model_selection import train_test_split
 
 # PyTorch library
@@ -19,70 +22,42 @@ from torch.nn.utils.rnn import pad_sequence
 import argparse
 from tqdm import trange
 import wandb
+import ipdb
+import re
+
+
+SEED = 1124 # Set your lucky number as the random seed
+MODEL_DIR = './model/RNN/model'
 
 """********************************************* 
-  Self-defined
- *********************************************"""
-def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--epochs', type=int, default=1, help='Total training epochs(default is 1).')
-    parser.add_argument('--lr', type=float, default=1e-5, help='Initial learning rate for sgd(default is 1e-5).')
-    parser.add_argument('--batch_size', type=int, default=256, help='Batch size.(default is 256)')
-    parser.add_argument('--optimizer', type=str, default="sgd", help='Optimizer, adam or sgd(default is sgd).')
-
-    parser.add_argument('--weight_d', type=float, default=1e-5, help='Adjust weight decay(default is 1e-5)')
-    parser.add_argument('--momentum', default=0.9, type=float, help='Momentum for sgd(default is 0.9)')
-    parser.add_argument('-c', '--checkpoint', type=str, default=None, help='Pytorch checkpoint file path')
-    parser.add_argument('--mode', type=str, default='test', help='train or test mode(default is train)')
-    parser.add_argument('--gamma', type=float, default=0.8, help='Initial gamma for scheduler and the default is 0.8.')
-    parser.add_argument('--step', type=int, default=20, help='Initial step for scheduler and the default is 20.')
-
-    parser.add_argument('--max_position_len', type=int, default=100, help='Edit position length.(default is 100)')
-    parser.add_argument('--w2v_dim', type=int, default=64, help='Try to tune word to vector dimension(default is 64)')
-    parser.add_argument('--net_hidden_dim', type=int, default=32, help='Try to tune network hidden dimension(default is 32)')
-    parser.add_argument('--net_num_layers', type=int, default=1, help='Try to tune network # layer(default is 1)')
-    parser.add_argument('--dropout', type=float, default=0.5, help='Set network dropout config(default is 0.5).')
-    parser.add_argument('--header_hidden_dim', type=int, default=32, help='Try to tune header # layer(default is 32)')
-
-    parser.add_argument('--wandb', action='store_true')
-    parser.add_argument('--data_aug', action='store_true', help='Use data augmentation or not.')
-    parser.add_argument('--scheduler', action='store_true', help='Use early stopping technique or not.')
-    return parser.parse_args()
-
-def wandb_update():
-    config = wandb.config
-    config.epochs = args.epochs
-    config.learning_rate = args.lr
-    config.batch_size = args.batch_size
-    config.optimizer = args.optimizer
-
-    config.weight_d = args.weight_d
-    config.momentum = args.momentum
-    config.checkpoint = args.checkpoint
-    config.gamma = args.gamma
-    config.step = args.step
-
-    config.max_position_len = args.max_position_len
-    config.w2v_dim = args.w2v_dim
-    config.net_hidden_dim = args.net_hidden_dim
-    config.net_num_layers = args.net_num_layers
-    config.dropout = args.dropout
-    config.header_hidden_dim = args.header_hidden_dim
-
-    config.data_aug = args.data_aug
-    config.scheduler = args.scheduler
-
-'''********************************************* 
   Basic setup of hyperparameters
- *********************************************'''
-args = parse_args()
-BATCH_SIZE = args.batch_size
-EPOCH_NUM = args.epochs
-MAX_POSITIONS_LEN = args.max_position_len
-SEED = 1124 # Set your lucky number as the random seed
-MODEL_DIR = './model/RNN/model.pth'
-lr = args.lr
+ *********************************************"""
+EPOCH_NUM = 10
+lr = 1e-5
+BATCH_SIZE = 256
+OPTIMIZER = 'sgd'
 
+weight_d = 1e-5
+momentum = 0.9
+CHECKPOINT = '' #MODEL_DIR + '_55.33854.pth' + '_61.46889.pth'
+gamma = 0.8
+step = 20
+
+MAX_POSITIONS_LEN = 100
+w2v_dim = 250
+embedding_dim = 250
+net_hidden_dim = 32
+net_num_layers = 1
+dropout = 0.5
+header_hidden_dim = 32
+
+WANDB = False
+DATA_AUG = False
+SCHEDULER = False
+
+"""********************************************* 
+  Do not changed
+ *********************************************"""
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 torch.manual_seed(SEED)
@@ -92,32 +67,76 @@ np.random.seed(SEED)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-w2v_config = {'path': './model/w2v/w2v.model', 'dim': args.w2v_dim}
-net_config = {'hidden_dim': args.net_hidden_dim, 'num_layers': args.net_num_layers, 'bidirectional': False, 'fix_embedding': True}
-header_config = {'dropout': args.dropout, 'hidden_dim': args.header_hidden_dim}
+w2v_config = {'path': './model/w2v/w2v_local_' + str(w2v_dim) + '.model', 'dim': w2v_dim}
+# net_config = {'hidden_dim': net_hidden_dim, 'num_layers': net_num_layers, 'bidirectional': False, 'fix_embedding': True}
+net_config = {'embedding_dim':embedding_dim, 'hidden_dim': net_hidden_dim, 'num_layers': net_num_layers, 'bidirectional': False, 'fix_embedding': True}
+header_config = {'dropout': dropout, 'hidden_dim': header_hidden_dim}
 assert header_config['hidden_dim'] == net_config['hidden_dim'] or header_config['hidden_dim'] == net_config['hidden_dim'] * 2
 
 
-'''********************************************* 
+"""********************************************* 
+  Self-defined
+ *********************************************"""
+def wandb_update():
+    config = wandb.config
+    config.epochs = EPOCH_NUM
+    config.learning_rate = lr
+    config.batch_size = BATCH_SIZE
+    config.optimizer = OPTIMIZER
+
+    config.weight_d = weight_d
+    config.momentum = momentum
+    config.checkpoint = CHECKPOINT
+    config.gamma = gamma
+    config.step = step
+
+    config.max_position_len = MAX_POSITIONS_LEN
+    config.w2v_dim = w2v_dim
+    config.net_hidden_dim = net_hidden_dim
+    config.net_num_layers = net_num_layers
+    config.dropout = dropout
+    config.header_hidden_dim = header_hidden_dim
+
+    config.data_aug = DATA_AUG
+    config.scheduler = SCHEDULER
+
+
+"""********************************************* 
   Auxiliary functions and classes definition
- *********************************************'''
+ *********************************************"""
 def parsing_text(text):
     # TODO: do data processing
+    # print(text)
+    text = text.split(' ')
+    at_someone = re.compile('^@')
+    http_str = re.compile('^http')
+    www_str = re.compile('^www')
+    hashtag_str = re.compile('^#')
+    text = [string for string in text if not re.match(at_someone, string)]  # Remove @.... string
+    text = [string for string in text if not re.match(http_str, string)]    # Remove http... string(url)
+    text = [string for string in text if not re.match(www_str, string)]     # Remove www... string(url)
+    text = [string for string in text if not re.match(hashtag_str, string)]     # Remove #... string(hashtag)
+    pass_str = ['.', '-', '&lt;', '&gt;', '&amp;', '&quot;', '!!!']         # Replace blacklist string to white space
+    for i in range(len(text)):
+        for j in range(len(pass_str)):
+            text[i] = text[i].replace(pass_str[j], ' ')
+    text = ' '.join(text)
+    # print(text)
     return text
 
-def load_train_label(path='./dataset/train.csv'):
+def load_train_label(path='HW4_dataset/train.csv'):
     tra_lb_pd = pd.read_csv(path)
     label = torch.FloatTensor(tra_lb_pd['label'].values)
     idx = tra_lb_pd['id'].tolist()
     text = [parsing_text(s).split(' ') for s in tra_lb_pd['text'].tolist()]
     return idx, text, label
 
-def load_train_nolabel(path='./dataset/train_nolabel.csv'):
+def load_train_nolabel(path='HW4_dataset/train_nolabel.csv'):
     tra_nlb_pd = pd.read_csv(path)
     text = [parsing_text(s).split(' ') for s in tra_nlb_pd['text'].tolist()]
     return None, text, None
 
-def load_test(path='./dataset/test.csv'):
+def load_test(path='HW4_dataset/test.csv'):
     tst_pd = pd.read_csv(path)
     idx = tst_pd['id'].tolist()
     text = [parsing_text(s).split(' ') for s in tst_pd['text'].tolist()]
@@ -137,19 +156,19 @@ class Preprocessor:
             w2v_model = Word2Vec.load(path)
         else:
             print("training word2vec model ...")
-            w2v_model = Word2Vec(x, vector_size=dim, window=5, min_count=2, workers=12, epochs=2, sg=1)
+            w2v_model = Word2Vec(x, size=dim, window=5, min_count=5, workers=12, iter=10, sg=0)
             print("saving word2vec model ...")
             w2v_model.save(path)
             
         self.embedding_dim = w2v_model.vector_size
-        for i, word in enumerate(list(w2v_model.wv.index_to_key)):   #for i, word in enumerate(w2v_model.wv.vocab):
+        for i, word in enumerate(w2v_model.wv.vocab):
             #e.g. self.word2index['he'] = 1 
             #e.g. self.index2word[1] = 'he'
             #e.g. self.vectors[1] = 'he' vector
             
             self.word2idx[word] = len(self.word2idx)
             self.idx2word.append(word)
-            self.embedding_matrix.append(w2v_model.wv[word])
+            self.embedding_matrix.append(w2v_model[word])
         
         self.embedding_matrix = torch.tensor(self.embedding_matrix)
         self.add_embedding('<PAD>')
@@ -200,45 +219,34 @@ class TwitterDataset(torch.utils.data.Dataset):
           labels = torch.FloatTensor([d[2] for d in data])
           return id_list, lengths, texts, labels
 
-train_idx, train_label_text, label = load_train_label('./dataset/train.csv')
 
+train_idx, train_label_text, label = load_train_label('HW4_dataset/train.csv')
 preprocessor = Preprocessor(train_label_text, w2v_config)
+
 
 train_idx, valid_idx, train_label_text, valid_label_text, train_label, valid_label = train_test_split(train_idx, train_label_text, label, test_size=0.5)
 train_dataset, valid_dataset = TwitterDataset(train_idx, train_label_text, train_label, preprocessor), TwitterDataset(valid_idx, valid_label_text, valid_label, preprocessor)
 
-test_idx, test_text = load_test('./dataset/test.csv')
+test_idx, test_text = load_test('HW4_dataset/test.csv')
 test_dataset = TwitterDataset(test_idx, test_text, None, preprocessor)
 
-train_loader = torch.utils.data.DataLoader(dataset = train_dataset,
-                                            batch_size = BATCH_SIZE,
-                                            shuffle = True,
-                                            collate_fn = train_dataset.collate_fn,
-                                            num_workers = 8)
-valid_loader = torch.utils.data.DataLoader(dataset = valid_dataset,
-                                            batch_size = BATCH_SIZE,
-                                            shuffle = False,
-                                            collate_fn = valid_dataset.collate_fn,
-                                            num_workers = 8)
-test_loader = torch.utils.data.DataLoader(dataset = test_dataset,
-                                            batch_size = BATCH_SIZE,
-                                            shuffle = False,
-                                            collate_fn = test_dataset.collate_fn,
-                                            num_workers = 8)
+train_loader = torch.utils.data.DataLoader(dataset = train_dataset, batch_size = BATCH_SIZE, shuffle = True, collate_fn = train_dataset.collate_fn, num_workers = 8)
+valid_loader = torch.utils.data.DataLoader(dataset = valid_dataset, batch_size = BATCH_SIZE, shuffle = False, collate_fn = valid_dataset.collate_fn, num_workers = 8)
+test_loader = torch.utils.data.DataLoader(dataset = test_dataset, batch_size = BATCH_SIZE, shuffle = False, collate_fn = test_dataset.collate_fn, num_workers = 8)
 
 
-'''********************************************* 
+"""********************************************* 
   Definition of RNN network
- *********************************************'''
+ *********************************************"""
 class Backbone(torch.nn.Module):
-    def __init__(self, embedding, hidden_dim, num_layers, bidirectional, fix_embedding=True):
+    def __init__(self, embedding, embedding_dim, hidden_dim, num_layers, bidirectional, fix_embedding=True):
         super(Backbone, self).__init__()
         self.embedding = torch.nn.Embedding(embedding.size(0),embedding.size(1))
         self.embedding.weight = torch.nn.Parameter(embedding)
-        self.embedding.weight.requires_grad = False if fix_embedding else True
+        self.embedding.weight.requires_grad = False if fix_embedding else True  # 是否將embedding固定住，如果fix_embedding爲False，在訓練過程中，embedding也會跟着被訓練
         
-        self.net = torch.nn.RNN(embedding.size(1), hidden_dim, num_layers=num_layers, \
-                                  bidirectional=bidirectional, batch_first=True)
+        # self.net = torch.nn.RNN(embedding.size(1), hidden_dim, num_layers=num_layers, bidirectional=bidirectional, batch_first=True)
+        self.net = torch.nn.LSTM(embedding_dim, hidden_dim, num_layers=num_layers, batch_first=True)
         
     def forward(self, inputs):
         inputs = self.embedding(inputs)
@@ -255,8 +263,7 @@ class Header(torch.nn.Module):
     @ torch.no_grad()
     def _get_length_masks(self, lengths):
         # lengths: (batch_size, ) in cuda
-        ascending = torch.arange(MAX_POSITIONS_LEN)[:lengths.max().item()].unsqueeze(
-            0).expand(len(lengths), -1).to(lengths.device)
+        ascending = torch.arange(MAX_POSITIONS_LEN)[:lengths.max().item()].unsqueeze(0).expand(len(lengths), -1).to(lengths.device)
         length_masks = (ascending < lengths.unsqueeze(-1)).unsqueeze(-1)
         return length_masks
     
@@ -269,9 +276,9 @@ class Header(torch.nn.Module):
         return out
 
 
-'''********************************************* 
+"""********************************************* 
   Trainer
- *********************************************'''
+ *********************************************"""
 def train(train_loader, backbone, header, optimizer, criterion, device, epoch):
 
     total_loss = []
@@ -288,20 +295,20 @@ def train(train_loader, backbone, header, optimizer, criterion, device, epoch):
         total_loss.append(loss.item())
         loss.backward()
         optimizer.step()
+        if WANDB:
+          wandb.log({"train_loss": np.mean(total_loss)})
         
+        # ipdb.set_trace()
         with torch.no_grad():
             hard_predicted = (soft_predicted >= 0.5).int()
             correct = sum(hard_predicted == labels).item()
             batch_size = len(labels)
-            acc = correct * 100 / batch_size
+            acc = correct * 100 / len(labels)
             total_acc.append(acc)
-        
-            print('[Training in epoch {:}] loss:{:.3f} acc:{:.3f}'.format(epoch+1, np.mean(total_loss), np.mean(total_acc)), end='\r')
-        
-            if args.wandb:
-                wandb.log({"lr": optimizer.param_groups[0]['lr'],
-                            "train_loss": np.mean(total_loss),
-                            "train_acc": np.mean(total_acc),})
+
+            if WANDB:
+              wandb.log({"lr": optimizer.param_groups[0]['lr'],
+                          "train_acc": np.mean(total_acc),})
     backbone.train()
     header.train()
     return np.mean(total_loss), np.mean(total_acc)
@@ -327,20 +334,20 @@ def valid(valid_loader, backbone, header, criterion, device, epoch):
             acc = correct * 100 / len(labels)
             total_acc.append(acc)
             
-            print('[Validation in epoch {:}] loss:{:.3f} acc:{:.3f}'.format(epoch+1, np.mean(total_loss), np.mean(total_acc)), end='\r')
+            # print('[Validation in epoch {:}] loss:{:.3f} acc:{:.3f}'.format(epoch+1, np.mean(total_loss), np.mean(total_acc)), end='\r')
 
-            if args.wandb:
+            if WANDB:
                 wandb.log({"val_loss": np.mean(total_loss),
                             "val_acc": np.mean(total_acc),})
     backbone.train()
     header.train()
     return np.mean(total_loss), np.mean(total_acc)
-
-            
+          
 def run_training(train_loader, valid_loader, backbone, header, epoch_num, lr, device, model_dir): 
     def check_point(backbone, header, loss, acc, model_dir):
         # TODO
-        torch.save({'backbone': backbone, 'header': header}, model_dir)
+        torch.save({'backbone': backbone}, model_dir + "_backbone_" + str(round(acc, 5)) + '.pth')
+        torch.save({'header': header}, model_dir + "_header_" + str(round(acc, 5)) + '.pth')
     def is_stop(loss, acc):
         # TODO
         return False
@@ -349,39 +356,38 @@ def run_training(train_loader, valid_loader, backbone, header, epoch_num, lr, de
         trainable_paras = header.parameters()
     else:
         trainable_paras = list(backbone.parameters()) + list(header.parameters())
-
-
+        
     '''Optim Prepare'''
-    if args.optimizer == 'adam':
-        optimizer = torch.optim.Adam(trainable_paras, weight_decay=args.weight_d, lr=lr)
-    elif args.optimizer == 'sgd':
-        optimizer = torch.optim.SGD(trainable_paras, lr=lr, momentum=args.momentum, weight_decay=args.weight_d)
+    if OPTIMIZER == 'adam':
+      optimizer = torch.optim.Adam(trainable_paras, weight_decay=weight_d, lr=lr)
+    elif OPTIMIZER == 'sgd':
+      optimizer = torch.optim.SGD(trainable_paras, lr=lr, momentum=momentum, weight_decay=weight_d)
     else:
-        raise ValueError("Optimizer not supported.")
-    if args.scheduler == True:
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=args.step, gamma=args.gamma)
+      raise ValueError("Optimizer not supported.")
 
+    if SCHEDULER == True:
+      scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=step, gamma=gamma)
     
     backbone.train()
     header.train()
     backbone = backbone.to(device)
     header = header.to(device)
     criterion = torch.nn.BCELoss()
+    best_acc = 70
     for epoch in range(epoch_num):
-        train_total_loss, train_total_acc = train(train_loader, backbone, header, optimizer, criterion, device, epoch)
+        train_loss, train_acc = train(train_loader, backbone, header, optimizer, criterion, device, epoch)
         loss, acc = valid(valid_loader, backbone, header, criterion, device, epoch)
+        print('[Training in epoch {:}] loss:{:.3f} acc:{:.3f}'.format(epoch+1, train_loss, train_acc))
         print('[Validation in epoch {:}] loss:{:.3f} acc:{:.3f} '.format(epoch+1, loss, acc))
-        check_point(backbone, header, loss, acc, model_dir)
+        if acc > best_acc:
+            best_acc = acc
+            check_point(backbone, header, loss, acc, model_dir)
         if is_stop(loss, acc):
             break
 
-        if args.scheduler == True:
-            scheduler.step()
-
-
-'''********************************************* 
+"""********************************************* 
   Testing
- *********************************************'''
+ *********************************************"""
 def run_testing(test_loader, backbone, header, device, output_path):
   with open(output_path, 'w') as f:
     backbone.eval()
@@ -399,33 +405,26 @@ def run_testing(test_loader, backbone, header, device, output_path):
           writer.writerow([str(i.item()), str(p.item())])
 
 
-'''********************************************* 
-  Main Process
- *********************************************'''
-if __name__ == '__main__':
-    if args.mode == 'train':
-        if args.wandb:
-            wandb.init(project='MLHW4')
-            wandb_update()
-        '''********************************************* 
-        Training
-        *********************************************'''
-        backbone = Backbone(preprocessor.embedding_matrix, **net_config)
-        header = Header(**header_config)
+"""********************************************* 
+  Training
+ *********************************************"""
+# if __name__ == '__main__':
+#     if WANDB:
+#         wandb.init(project='MLHW4')
+#         wandb_update()
+#     backbone = Backbone(preprocessor.embedding_matrix, **net_config).to(device)
+#     header = Header(**header_config).to(device)
 
-        run_training(train_loader, valid_loader, backbone, header, EPOCH_NUM, lr, device, MODEL_DIR)
+#     if os.path.isfile(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth') and os.path.isfile(MODEL_DIR + '_header_' + CHECKPOINT + '.pth'):
+#         print('Loading RNN model...')
+#         checkpoint = torch.load(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth')
+#         backbone.load_state_dict(checkpoint, strict=False)
+#         checkpoint = torch.load(MODEL_DIR + '_header_' + CHECKPOINT + '.pth')
+#         header.load_state_dict(checkpoint, strict=False)
 
-    if args.mode == 'test':
-        '''********************************************* 
-        Make a submission file
-        (Note: In principle, you don't need to modify this part, and please make sure that you follow the correct format of the produced files.)
-        *********************************************'''
-        pred_file = os.path.join('./testing_result/', 'pred.csv')
-        backbone = Backbone(preprocessor.embedding_matrix, **net_config)
-        header = Header(**header_config)
-        backbone = backbone.to(device)
-        header = header.to(device)
-        run_testing(test_loader, backbone, header, device, pred_file)
+#     run_training(train_loader, valid_loader, backbone, header, EPOCH_NUM, lr, device, MODEL_DIR)
 
-        # from google.colab import files
-        # files.download(pred_file)
+    # pred_file = './testing_result/pred_local.csv'
+    # run_testing(test_loader, backbone, header, device, pred_file)
+    # from google.colab import files
+    # files.download(pred_file)
