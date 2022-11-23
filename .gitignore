@@ -35,7 +35,7 @@ HW3/*.zip
 HW4/Programming/model/*
 !HW4/Programming/model/README.txt
 HW4/Programming/wandb/
-HW4/Programming/dataset/
+HW4/Programming/dataset/*
 !HW4/Programming/dataset/README.txt
 HW4/Programming/~$report.docx
 HW4/Programming/~$HW4_slide.pptx
