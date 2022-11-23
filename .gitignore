@@ -9,7 +9,7 @@ HW1/Programming/~$report.docx
 HW2/Programming/dataset/test/
 HW2/Programming/dataset/train/
 HW2/Programming/model/*
-!HW2/Progamming/model/README.txt
+!HW2/Programming/model/README.txt
 HW2/Programming/wandb/
 HW2/Programming/~$report.docx
 HW2/Programming/~$-2022fall-hw2-report-template.docx
@@ -22,6 +22,7 @@ HW3/Programming/model/*
 !HW3/Programming/model/README.txt
 HW3/Programming/wandb/
 HW3/Programming/dataset/
+!HW3/Programming/dataset/README.txt
 HW3/Programming/~$report.docx
 HW3/Programming/~$ml-2022-fall-hw3.pptx
 *.tmp
