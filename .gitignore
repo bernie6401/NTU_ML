@@ -19,6 +19,7 @@ HW2/epoch490_acc0.6243.pth
 HW2/MLHW2.py
 
 HW3/Programming/model/*
+!HW3/Programming/model/README.txt
 HW3/Programming/wandb/
 HW3/Programming/dataset/
 HW3/Programming/~$report.docx
@@ -31,7 +32,10 @@ HW3/*.zip
 
 
 HW4/Programming/model/*
+!HW4/Programming/model/README.txt
 HW4/Programming/wandb/
 HW4/Programming/dataset/
+!HW4/Programming/dataset/README.txt
 HW4/Programming/~$report.docx
 HW4/Programming/~$HW4_slide.pptx
+HW4/Programming/sample_on_web.py
