@@ -28,6 +28,7 @@ import re
 
 SEED = 1124 # Set your lucky number as the random seed
 MODEL_DIR = './model/RNN/model'
+#MODEL_DIR = './drive/MyDrive/Colab Notebooks/MLHW4/model/RNN/model'
 
 """********************************************* 
   Basic setup of hyperparameters
@@ -46,11 +47,12 @@ step = 20
 MAX_POSITIONS_LEN = 100
 w2v_dim = 250
 embedding_dim = 250
-net_hidden_dim = 32
+net_hidden_dim = 150
 net_num_layers = 1
 dropout = 0.5
-header_hidden_dim = 32
+header_hidden_dim = 150
 
+mode = 'train'
 WANDB = False
 DATA_AUG = False
 SCHEDULER = False
@@ -68,6 +70,7 @@ np.random.seed(SEED)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 w2v_config = {'path': './model/w2v/w2v_local_' + str(w2v_dim) + '.model', 'dim': w2v_dim}
+w2v_config = {'path': './drive/MyDrive/Colab Notebooks/MLHW4/model/w2v/w2v_local_' + str(w2v_dim) + '_parse_text_cbow.model', 'dim': w2v_dim}
 # net_config = {'hidden_dim': net_hidden_dim, 'num_layers': net_num_layers, 'bidirectional': False, 'fix_embedding': True}
 net_config = {'embedding_dim':embedding_dim, 'hidden_dim': net_hidden_dim, 'num_layers': net_num_layers, 'bidirectional': False, 'fix_embedding': True}
 header_config = {'dropout': dropout, 'hidden_dim': header_hidden_dim}
@@ -92,6 +95,7 @@ def wandb_update():
 
     config.max_position_len = MAX_POSITIONS_LEN
     config.w2v_dim = w2v_dim
+    config.embedding_dim = embedding_dim
     config.net_hidden_dim = net_hidden_dim
     config.net_num_layers = net_num_layers
     config.dropout = dropout
@@ -373,7 +377,7 @@ def run_training(train_loader, valid_loader, backbone, header, epoch_num, lr, de
     backbone = backbone.to(device)
     header = header.to(device)
     criterion = torch.nn.BCELoss()
-    best_acc = 70
+    best_acc = 78
     for epoch in range(epoch_num):
         train_loss, train_acc = train(train_loader, backbone, header, optimizer, criterion, device, epoch)
         loss, acc = valid(valid_loader, backbone, header, criterion, device, epoch)
@@ -384,6 +388,26 @@ def run_training(train_loader, valid_loader, backbone, header, epoch_num, lr, de
             check_point(backbone, header, loss, acc, model_dir)
         if is_stop(loss, acc):
             break
+        if SCHEDULER == True:
+            scheduler.step()
+
+
+"""********************************************* 
+  Training
+ *********************************************"""
+backbone = Backbone(preprocessor.embedding_matrix, **net_config).to(device)
+header = Header(**header_config).to(device)
+
+if mode == 'train':
+    if WANDB:
+        wandb.init(project='MLHW4')
+        wandb_update()
+    if os.path.isfile(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth') and os.path.isfile(MODEL_DIR + '_header_' + CHECKPOINT + '.pth'):
+        print('Loading RNN model...')
+        backbone = torch.load(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth')
+        header = torch.load(MODEL_DIR + '_header_' + CHECKPOINT + '.pth')
+    run_training(train_loader, valid_loader, backbone, header, EPOCH_NUM, lr, device, MODEL_DIR)
+
 
 """********************************************* 
   Testing
@@ -404,27 +428,11 @@ def run_testing(test_loader, backbone, header, device, output_path):
         for i, p in zip(idx_list, hard_predicted):
           writer.writerow([str(i.item()), str(p.item())])
 
-
-"""********************************************* 
-  Training
- *********************************************"""
-# if __name__ == '__main__':
-#     if WANDB:
-#         wandb.init(project='MLHW4')
-#         wandb_update()
-#     backbone = Backbone(preprocessor.embedding_matrix, **net_config).to(device)
-#     header = Header(**header_config).to(device)
-
-#     if os.path.isfile(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth') and os.path.isfile(MODEL_DIR + '_header_' + CHECKPOINT + '.pth'):
-#         print('Loading RNN model...')
-#         checkpoint = torch.load(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth')
-#         backbone.load_state_dict(checkpoint, strict=False)
-#         checkpoint = torch.load(MODEL_DIR + '_header_' + CHECKPOINT + '.pth')
-#         header.load_state_dict(checkpoint, strict=False)
-
-#     run_training(train_loader, valid_loader, backbone, header, EPOCH_NUM, lr, device, MODEL_DIR)
-
-    # pred_file = './testing_result/pred_local.csv'
-    # run_testing(test_loader, backbone, header, device, pred_file)
-    # from google.colab import files
-    # files.download(pred_file)
+if os.path.isfile(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth') and os.path.isfile(MODEL_DIR + '_header_' + CHECKPOINT + '.pth'):
+    print('Loading RNN model...')
+    backbone = torch.load(MODEL_DIR + '_backbone_' + CHECKPOINT + '.pth')
+    header = torch.load(MODEL_DIR + '_header_' + CHECKPOINT + '.pth')
+pred_file = './testing_result/pred_local.csv'
+run_testing(test_loader, backbone, header, device, pred_file)
+# from google.colab import files
+# files.download(pred_file)
