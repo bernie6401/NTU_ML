@@ -21,3 +21,15 @@
 * **(Solved->See the last paragraph)**I also figured that using the stored weight and bias by my pretrained model is not the right way. I used pickle to store the dump parameters during the training and used the best one as my pretrained parameter. But it's still not that good enough.
 * The better way in this project to enhance your accuracy is tuning your training config and select  good features.
 * After discussing with my friend, I figured out the problem and tried to solve it successfully by fitting numpy random seed. Then, the parameter will truly fix but normalization **is still not working** to help model converging.
+
+## Update
+
+* 2022/12/06 update - Refer to [相關](https://www.youtube.com/watch?v=z-21v0EoFh4&ab_channel=CUSTCourses) taught by Dr.李柏堅, I use `Pearson Correlation` to compute the correlation of each factor and PM2.5 and the result is shown as below. According to the [video](https://www.youtube.com/watch?v=z-21v0EoFh4&ab_channel=CUSTCourses), `|r| < 0.4` is low correlation, `0.4 ≦ |r| < 0.7`is medium correlation, and `0.7 ≦ |r| < 1` is high correlation. So, the factor **<font color=#FF0000>**`CO`, `NO`, `NO2`, `NOx`, `PM10`, and `SO2`**</font>**  are quite suitable as our input data to address this regression problem.
+
+    | Factor | AMB_TEMP     | CO          | NO          | NO2         | NOx        | O3          | PM10        | WS_HR        | RAINFALL     | RH           | SO2         | WD_HR       | WIND_DIREC  | WIND_SPEED  |
+      | :----: | :------------: | :-----------: | :-----------: | :-----------: | :----------: | :----------- | :----------- | :------------: | :------------: | :------------: | :-----------: | :-----------: | :----------:- | :-----------: |
+      |   r    | -0.176147465 | 0.659147668 | 0.227219147 | 0.554273687 | 0.51365014 | 0.233923944 | 0.818868214 | -0.102047405 | -0.060801221 | -0.081576429 | 0.361333416 | 0.171932397 | 0.137658351 | -0.10119696 |
+
+  
+
+  
